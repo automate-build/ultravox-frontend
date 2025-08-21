@@ -1,0 +1,441 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Mic, MicOff, Send, Settings, Volume2, MessageCircle } from 'lucide-react';
+
+const UltravoxVoiceAgent = () => {
+  const [isConnected, setIsConnected] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [textInput, setTextInput] = useState('');
+  const [conversation, setConversation] = useState([]);
+  const [connectionStatus, setConnectionStatus] = useState('Disconnected');
+
+  const ultravoxSessionRef = useRef(null);
+
+  const starterPrompts = [
+    "Give me a project status update",
+    "Create a new task: Draft API spec, due Friday",
+    "Any significant risks this week?",
+    "Summarise yesterday's standup"
+  ];
+
+  const projectFiles = [
+    "Requirements.md",
+    "Risks-and-Issues.xlsx",
+    "Architecture.pdf"
+  ];
+
+  // Connection functions
+  const connectToAgent = async () => {
+    try {
+      setConnectionStatus('Creating call...');
+      
+      // Use your deployed Vercel backend (API key is stored in Vercel environment)
+      const callResponse = await fetch('https://ultravox-proxy-86my-aqiov2nke-justin-harcourts-projects.vercel.app/api/create-call', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          systemPrompt: "You are a helpful AI assistant. Be conversational and helpful.",
+          model: "fixie-ai/ultravox",
+          voice: "Mark",
+          medium: {
+            webRtc: {}
+          }
+        })
+      });
+
+      if (!callResponse.ok) {
+        const errorText = await callResponse.text();
+        throw new Error(`Backend error: ${callResponse.status} - ${errorText}`);
+      }
+
+      const result = await callResponse.json();
+      console.log('Call created successfully:', result);
+      
+      if (result.joinUrl) {
+        setConnectionStatus('Connected');
+        setIsConnected(true);
+        addMessage('system', 'Successfully connected to Ultravox agent');
+        addMessage('system', `Join URL: ${result.joinUrl}`);
+        
+        // Store the join URL for potential SDK use
+        ultravoxSessionRef.current = { joinUrl: result.joinUrl };
+      } else {
+        throw new Error('No joinUrl received from Ultravox');
+      }
+      
+    } catch (error) {
+      console.error('Connection failed:', error);
+      setConnectionStatus('Connection Failed');
+      alert(`Connection failed: ${error.message}`);
+    }
+  };
+
+  const disconnectFromAgent = async () => {
+    try {
+      if (ultravoxSessionRef.current) {
+        // TODO: Uncomment when ultravox-client is installed
+        // await ultravoxSessionRef.current.leaveCall();
+        ultravoxSessionRef.current = null;
+      }
+      setIsConnected(false);
+      setIsRecording(false);
+      setIsProcessing(false);
+      setConnectionStatus('Disconnected');
+      addMessage('system', 'Disconnected from voice agent');
+    } catch (error) {
+      console.error('Error disconnecting:', error);
+    }
+  };
+
+  // Audio recording functions - Note: With Ultravox SDK, you don't manually record
+  const startRecording = async () => {
+    if (!isConnected) {
+      alert('Please connect to the voice agent first');
+      return;
+    }
+
+    try {
+      // TODO: Uncomment when ultravox-client is installed
+      /*
+      // With Ultravox SDK, you don't need to manually handle microphone
+      // The SDK automatically manages audio input/output
+      // Just unmute the microphone if needed
+      if (ultravoxSessionRef.current && ultravoxSessionRef.current.isMicMuted()) {
+        ultravoxSessionRef.current.unmuteMic();
+      }
+      */
+      
+      // Simulate for demo
+      setIsRecording(true);
+      addMessage('system', 'Demo: Would start listening via Ultravox SDK');
+      
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      alert('Could not start recording. Make sure ultravox-client is installed.');
+    }
+  };
+
+  const stopRecording = () => {
+    // TODO: Uncomment when ultravox-client is installed
+    /*
+    // With Ultravox SDK, you might mute the mic to stop listening
+    if (ultravoxSessionRef.current) {
+      ultravoxSessionRef.current.muteMic();
+    }
+    */
+    
+    // Simulate for demo
+    setIsRecording(false);
+    setIsProcessing(true);
+    addMessage('system', 'Demo: Would stop listening and process via Ultravox SDK');
+    
+    setTimeout(() => {
+      setIsProcessing(false);
+    }, 2000);
+  };
+
+  // Text message functions
+  const sendTextMessage = (text = null) => {
+    const message = text || textInput.trim();
+    if (!message) return;
+
+    if (!isConnected) {
+      alert('Please connect to the voice agent first');
+      return;
+    }
+
+    addMessage('user', message);
+    setTextInput('');
+    setIsProcessing(true);
+
+    // TODO: Uncomment when ultravox-client is installed
+    /*
+    if (ultravoxSessionRef.current) {
+      ultravoxSessionRef.current.sendText(message);
+    }
+    */
+    
+    // Simulate response for demo
+    setTimeout(() => {
+      addMessage('agent', `Received your message: "${message}". Backend connection working! Install ultravox-client SDK for real voice conversations.`);
+      setIsProcessing(false);
+    }, 1500);
+  };
+
+  // Utility functions
+  const addMessage = (role, content) => {
+    const newMessage = {
+      id: Date.now(),
+      role,
+      content,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    setConversation(prev => [...prev, newMessage]);
+  };
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.code === 'Space' && !e.repeat && !isRecording) {
+        e.preventDefault();
+        startRecording();
+      }
+    };
+
+    const handleKeyUp = (e) => {
+      if (e.code === 'Space' && isRecording) {
+        e.preventDefault();
+        stopRecording();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [isRecording]);
+
+  const getStatusColor = () => {
+    if (isConnected) return 'bg-emerald-100 text-emerald-800';
+    if (connectionStatus === 'Creating call...') return 'bg-amber-100 text-amber-800';
+    return 'bg-gray-100 text-gray-600';
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+              <Volume2 className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Ultravox Agent</h1>
+              <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor()}`}>
+                {connectionStatus}
+              </span>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              title="Connection Settings"
+            >
+              <Settings className="w-5 h-5 text-gray-600" />
+            </button>
+            
+            {!isConnected ? (
+              <button
+                onClick={connectToAgent}
+                disabled={connectionStatus === 'Creating call...'}
+                className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+              >
+                {connectionStatus === 'Creating call...' ? 'Connecting...' : 'Connect'}
+              </button>
+            ) : (
+              <button
+                onClick={disconnectFromAgent}
+                className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Disconnect
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Connection Settings */}
+        {showSettings && (
+          <div className="mb-8 p-6 bg-white rounded-xl shadow-sm border border-gray-200">
+            <h3 className="text-lg font-semibold mb-4">Connection Settings</h3>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
+                <strong>Backend Connected:</strong> Your Ultravox API key is securely stored in your Vercel backend.
+                No credentials needed here.
+              </p>
+              <p className="text-xs text-blue-600 mt-2">
+                Backend URL: https://ultravox-proxy-86my-aqiov2nke-justin-harcourts-projects.vercel.app
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Main Grid */}
+        <div className="grid grid-cols-12 gap-6">
+          {/* Agent Column */}
+          <div className="col-span-12 lg:col-span-4">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h2 className="text-sm font-medium text-gray-500 mb-4">Agent</h2>
+              
+              {/* Avatar */}
+              <div className="relative mb-6">
+                <div className="w-48 h-48 mx-auto bg-gradient-to-b from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center relative overflow-hidden">
+                  {/* Simple face */}
+                  <div className="relative">
+                    <div className="w-32 h-32 bg-gray-300 rounded-full relative">
+                      {/* Eyes */}
+                      <div className="absolute top-10 left-8 w-3 h-3 bg-gray-700 rounded-full"></div>
+                      <div className="absolute top-10 right-8 w-3 h-3 bg-gray-700 rounded-full"></div>
+                      {/* Mouth */}
+                      <div className={`absolute bottom-8 left-1/2 transform -translate-x-1/2 w-12 h-2 bg-gray-700 rounded-full transition-all duration-200 ${
+                        isProcessing ? 'animate-pulse scale-110' : ''
+                      }`}></div>
+                    </div>
+                  </div>
+                  
+                  {/* Status indicator */}
+                  <div className="absolute top-4 right-4">
+                    <div className={`w-3 h-3 rounded-full ${
+                      isRecording ? 'bg-red-500 animate-pulse' : 
+                      isProcessing ? 'bg-amber-500 animate-pulse' :
+                      isConnected ? 'bg-emerald-500' : 'bg-gray-400'
+                    }`}></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Voice Controls */}
+              <div className="space-y-4">
+                <button
+                  onClick={isRecording ? stopRecording : startRecording}
+                  disabled={!isConnected || isProcessing}
+                  className={`w-full py-4 px-6 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+                    isRecording 
+                      ? 'bg-red-600 hover:bg-red-700 text-white' 
+                      : 'bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white'
+                  }`}
+                >
+                  {isRecording ? (
+                    <>
+                      <MicOff className="w-5 h-5" />
+                      Stop Recording
+                    </>
+                  ) : isProcessing ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="w-5 h-5" />
+                      Hold to Talk (Space)
+                    </>
+                  )}
+                </button>
+
+                {/* Text Input */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={textInput}
+                    onChange={(e) => setTextInput(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && sendTextMessage()}
+                    placeholder="Type your message..."
+                    disabled={!isConnected || isProcessing}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100"
+                  />
+                  <button
+                    onClick={() => sendTextMessage()}
+                    disabled={!isConnected || isProcessing || !textInput.trim()}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg transition-colors"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Starter Prompts */}
+              <div className="mt-6">
+                <h3 className="text-sm font-medium text-gray-500 mb-3">Starter Prompts</h3>
+                <div className="space-y-2">
+                  {starterPrompts.map((prompt, index) => (
+                    <button
+                      key={index}
+                      onClick={() => sendTextMessage(prompt)}
+                      disabled={!isConnected || isProcessing}
+                      className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 disabled:bg-gray-50 disabled:opacity-50 text-sm rounded-lg transition-colors"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Transcript Column */}
+          <div className="col-span-12 lg:col-span-5">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-[600px] flex flex-col">
+              <h2 className="text-sm font-medium text-gray-500 mb-4">Transcript</h2>
+              
+              <div className="flex-1 overflow-y-auto space-y-4">
+                {conversation.length === 0 ? (
+                  <div className="text-center text-gray-500 text-sm mt-8">
+                    <MessageCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                    <p>No messages yet. Connect and try a starter prompt.</p>
+                  </div>
+                ) : (
+                  conversation.map((message) => (
+                    <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg ${
+                        message.role === 'user' 
+                          ? 'bg-blue-600 text-white' 
+                          : message.role === 'system'
+                          ? 'bg-gray-100 text-gray-600'
+                          : 'bg-gray-50 text-gray-900 border border-gray-200'
+                      }`}>
+                        <div className={`text-xs mb-1 ${
+                          message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
+                        }`}>
+                          {message.role === 'user' ? 'You' : message.role === 'system' ? 'System' : 'Agent'} · {message.timestamp}
+                        </div>
+                        <div className="text-sm">{message.content}</div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Project Files Column */}
+          <div className="col-span-12 lg:col-span-3">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-[600px] flex flex-col">
+              <h2 className="text-sm font-medium text-gray-500 mb-4">Project Files (RAG)</h2>
+              
+              <div className="space-y-2 mb-6">
+                {projectFiles.map((file, index) => (
+                  <div
+                    key={index}
+                    className="px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm cursor-pointer transition-colors"
+                  >
+                    {file}
+                  </div>
+                ))}
+              </div>
+              
+              <div className="mt-auto pt-4 border-t border-gray-200">
+                <label className="block text-xs text-gray-500 mb-2">Upload Files</label>
+                <input
+                  type="file"
+                  multiple
+                  className="block w-full text-xs file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default UltravoxVoiceAgent;
