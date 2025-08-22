@@ -15,10 +15,11 @@ const UltravoxVoiceAgent = () => {
   const processedTranscriptsRef = useRef(new Set());
 
   const starterPrompts = [
-    "Give me a project status update",
-    "Create a new task: Draft API spec, due Friday", 
-    "Any significant risks this week?",
-    "Summarise yesterday's standup"
+    "Give me a summary overview of the project brief",
+    "Identify key project stakeholders",
+    "Give me a project status update", 
+    "Give me a breakdown of current risks",
+    "Create a project issue called {Issue Name}"
   ];
 
   const projectFiles = [
