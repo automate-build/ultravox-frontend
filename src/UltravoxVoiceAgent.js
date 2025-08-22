@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff, Send, Settings, Volume2, MessageCircle } from 'lucide-react';
+import { UltravoxSession } from 'ultravox-client';
 
 const UltravoxVoiceAgent = () => {
   const [isConnected, setIsConnected] = useState(false);
@@ -11,17 +12,18 @@ const UltravoxVoiceAgent = () => {
   const [connectionStatus, setConnectionStatus] = useState('Disconnected');
 
   const ultravoxSessionRef = useRef(null);
+  const processedTranscriptsRef = useRef(new Set());
 
   const starterPrompts = [
     "Give me a project status update",
-    "Create a new task: Draft API spec, due Friday",
+    "Create a new task: Draft API spec, due Friday", 
     "Any significant risks this week?",
     "Summarise yesterday's standup"
   ];
 
   const projectFiles = [
     "Requirements.md",
-    "Risks-and-Issues.xlsx",
+    "Risks-and-Issues.xlsx", 
     "Architecture.pdf"
   ];
 
@@ -30,16 +32,14 @@ const UltravoxVoiceAgent = () => {
     try {
       setConnectionStatus('Creating call...');
       
-      // Use your deployed Vercel backend (API key is stored in Vercel environment)
-      // const callResponse = await fetch('https://ultravox-proxy-86my-aqiov2nke-justin-harcourts-projects.vercel.app/api/create-call', {
+      // Step 1: Create call via local API (no CORS issues)
       const callResponse = await fetch('/api/create-call', {
-
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          systemPrompt: "You are a helpful AI assistant. Be conversational and helpful.",
+          systemPrompt: "You are a helpful AI assistant. Be conversational and helpful. Keep responses concise but friendly.",
           model: "fixie-ai/ultravox",
           voice: "Mark",
           medium: {
@@ -50,23 +50,20 @@ const UltravoxVoiceAgent = () => {
 
       if (!callResponse.ok) {
         const errorText = await callResponse.text();
-        throw new Error(`Backend error: ${callResponse.status} - ${errorText}`);
+        throw new Error(`API error: ${callResponse.status} - ${errorText}`);
       }
 
       const result = await callResponse.json();
       console.log('Call created successfully:', result);
       
-      if (result.joinUrl) {
-        setConnectionStatus('Connected');
-        setIsConnected(true);
-        addMessage('system', 'Successfully connected to Ultravox agent');
-        addMessage('system', `Join URL: ${result.joinUrl}`);
-        
-        // Store the join URL for potential SDK use
-        ultravoxSessionRef.current = { joinUrl: result.joinUrl };
-      } else {
+      if (!result.joinUrl) {
         throw new Error('No joinUrl received from Ultravox');
       }
+
+      setConnectionStatus('Connecting to voice session...');
+      
+      // Step 2: Connect using Ultravox SDK
+      await connectToUltravoxCall(result.joinUrl);
       
     } catch (error) {
       console.error('Connection failed:', error);
@@ -75,9 +72,90 @@ const UltravoxVoiceAgent = () => {
     }
   };
 
+  const connectToUltravoxCall = async (joinUrl) => {
+    try {
+      // Create and configure Ultravox session
+      const session = new UltravoxSession();
+      ultravoxSessionRef.current = session;
+      
+      // Set up event listeners
+      session.addEventListener('status', (event) => {
+        console.log('Session status changed:', session.status);
+        
+        switch (session.status) {
+          case 'disconnected':
+            setConnectionStatus('Disconnected');
+            setIsConnected(false);
+            setIsRecording(false);
+            setIsProcessing(false);
+            break;
+          case 'connecting':
+            setConnectionStatus('Connecting...');
+            break;
+          case 'idle':
+            setConnectionStatus('Connected');
+            setIsConnected(true);
+            setIsRecording(false);
+            setIsProcessing(false);
+            if (!conversation.length) {
+              addMessage('system', 'Connected to Ultravox voice agent. You can now speak or type messages.');
+            }
+            break;
+          case 'listening':
+            setIsRecording(true);
+            setIsProcessing(false);
+            break;
+          case 'thinking':
+            setIsRecording(false);
+            setIsProcessing(true);
+            break;
+          case 'speaking':
+            setIsRecording(false);
+            setIsProcessing(false);
+            break;
+        }
+      });
+      
+      session.addEventListener('transcripts', (event) => {
+        console.log('Transcripts updated:', session.transcripts);
+        
+        // Process new final transcripts
+        session.transcripts.forEach(transcript => {
+          if (transcript.isFinal) {
+            const transcriptId = `${transcript.speaker}-${transcript.text}-${Date.now()}`;
+            
+            if (!processedTranscriptsRef.current.has(transcriptId)) {
+              processedTranscriptsRef.current.add(transcriptId);
+              
+              addMessage(
+                transcript.speaker === 'user' ? 'user' : 'agent',
+                transcript.text
+              );
+            }
+          }
+        });
+      });
+
+      // Handle experimental messages for debugging
+      session.addEventListener('experimental_message', (msg) => {
+        console.log('Ultravox debug message:', msg);
+      });
+      
+      // Join the call
+      await session.joinCall(joinUrl);
+      
+    } catch (error) {
+      console.error('Error connecting to Ultravox call:', error);
+      setConnectionStatus('Connection Failed');
+      setIsConnected(false);
+      throw error;
+    }
+  };
+
   const disconnectFromAgent = async () => {
     try {
       if (ultravoxSessionRef.current) {
+        await ultravoxSessionRef.current.leaveCall();
         ultravoxSessionRef.current = null;
       }
       setIsConnected(false);
@@ -85,12 +163,13 @@ const UltravoxVoiceAgent = () => {
       setIsProcessing(false);
       setConnectionStatus('Disconnected');
       addMessage('system', 'Disconnected from voice agent');
+      processedTranscriptsRef.current.clear();
     } catch (error) {
       console.error('Error disconnecting:', error);
     }
   };
 
-  // Audio recording functions - simulated for now
+  // Audio functions - with Ultravox SDK, these are simplified
   const startRecording = async () => {
     if (!isConnected) {
       alert('Please connect to the voice agent first');
@@ -98,24 +177,35 @@ const UltravoxVoiceAgent = () => {
     }
 
     try {
-      setIsRecording(true);
-      addMessage('system', 'Listening... (simulated - will be real with ultravox-client SDK)');
+      // Request microphone permission
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      // With Ultravox SDK, just ensure mic is unmuted
+      if (ultravoxSessionRef.current && ultravoxSessionRef.current.isMicMuted()) {
+        ultravoxSessionRef.current.unmuteMic();
+      }
+      
+      // The SDK automatically handles voice detection and recording
+      console.log('Ready to listen - speak now');
       
     } catch (error) {
-      console.error('Error starting recording:', error);
-      alert('Could not start recording.');
+      console.error('Error accessing microphone:', error);
+      alert('Could not access microphone. Please check permissions and try again.');
     }
   };
 
   const stopRecording = () => {
-    setIsRecording(false);
-    setIsProcessing(true);
-    addMessage('system', 'Processing voice... (simulated)');
-    
-    setTimeout(() => {
-      setIsProcessing(false);
-      addMessage('agent', 'Simulated voice response. Backend connection works! Next: add ultravox-client SDK for real voice.');
-    }, 2000);
+    // With Ultravox SDK, you typically don't manually stop recording
+    // The SDK handles voice activity detection automatically
+    // But you can mute the mic if needed
+    if (ultravoxSessionRef.current && !ultravoxSessionRef.current.isMicMuted()) {
+      ultravoxSessionRef.current.muteMic();
+      setTimeout(() => {
+        if (ultravoxSessionRef.current) {
+          ultravoxSessionRef.current.unmuteMic();
+        }
+      }, 1000); // Brief pause then re-enable
+    }
   };
 
   // Text message functions
@@ -128,15 +218,12 @@ const UltravoxVoiceAgent = () => {
       return;
     }
 
-    addMessage('user', message);
+    // Send text message via SDK
+    if (ultravoxSessionRef.current) {
+      ultravoxSessionRef.current.sendText(message);
+    }
+    
     setTextInput('');
-    setIsProcessing(true);
-
-    // Simulate response - will be replaced with real SDK calls
-    setTimeout(() => {
-      addMessage('agent', `Backend connected! Received: "${message}". Next step: real voice with ultravox-client SDK.`);
-      setIsProcessing(false);
-    }, 1500);
   };
 
   // Utility functions
@@ -175,9 +262,18 @@ const UltravoxVoiceAgent = () => {
     };
   }, [isRecording, isConnected]);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (ultravoxSessionRef.current) {
+        ultravoxSessionRef.current.leaveCall().catch(console.error);
+      }
+    };
+  }, []);
+
   const getStatusColor = () => {
     if (isConnected) return 'bg-emerald-100 text-emerald-800';
-    if (connectionStatus === 'Creating call...') return 'bg-amber-100 text-amber-800';
+    if (connectionStatus.includes('...')) return 'bg-amber-100 text-amber-800';
     return 'bg-gray-100 text-gray-600';
   };
 
@@ -210,10 +306,10 @@ const UltravoxVoiceAgent = () => {
             {!isConnected ? (
               <button
                 onClick={connectToAgent}
-                disabled={connectionStatus === 'Creating call...'}
+                disabled={connectionStatus.includes('...')}
                 className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
               >
-                {connectionStatus === 'Creating call...' ? 'Connecting...' : 'Connect'}
+                {connectionStatus.includes('...') ? 'Connecting...' : 'Connect'}
               </button>
             ) : (
               <button
@@ -230,13 +326,15 @@ const UltravoxVoiceAgent = () => {
         {showSettings && (
           <div className="mb-8 p-6 bg-white rounded-xl shadow-sm border border-gray-200">
             <h3 className="text-lg font-semibold mb-4">Connection Settings</h3>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-800">
-                <strong>Backend Connected:</strong> Your Ultravox API key is securely stored in your Vercel backend.
-                Creating real calls with simulated voice responses.
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+              <p className="text-sm text-emerald-800">
+                <strong>Full Integration Active:</strong> Real-time voice conversation with Ultravox AI.
               </p>
-              <p className="text-xs text-blue-600 mt-2">
-                Backend URL: https://ultravox-proxy-86my-aqiov2nke-justin-harcourts-projects.vercel.app
+              <p className="text-xs text-emerald-600 mt-2">
+                Local API: /api/create-call
+              </p>
+              <p className="text-xs text-emerald-600">
+                SDK: ultravox-client with WebRTC audio
               </p>
             </div>
           </div>
@@ -280,7 +378,7 @@ const UltravoxVoiceAgent = () => {
               <div className="space-y-4">
                 <button
                   onClick={isRecording ? stopRecording : startRecording}
-                  disabled={!isConnected || isProcessing}
+                  disabled={!isConnected}
                   className={`w-full py-4 px-6 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
                     isRecording 
                       ? 'bg-red-600 hover:bg-red-700 text-white' 
@@ -290,7 +388,7 @@ const UltravoxVoiceAgent = () => {
                   {isRecording ? (
                     <>
                       <MicOff className="w-5 h-5" />
-                      Stop Recording
+                      Listening... (Space to pause)
                     </>
                   ) : isProcessing ? (
                     <>
@@ -313,12 +411,12 @@ const UltravoxVoiceAgent = () => {
                     onChange={(e) => setTextInput(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && sendTextMessage()}
                     placeholder="Type your message..."
-                    disabled={!isConnected || isProcessing}
+                    disabled={!isConnected}
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100"
                   />
                   <button
                     onClick={() => sendTextMessage()}
-                    disabled={!isConnected || isProcessing || !textInput.trim()}
+                    disabled={!isConnected || !textInput.trim()}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg transition-colors"
                   >
                     <Send className="w-4 h-4" />
@@ -334,7 +432,7 @@ const UltravoxVoiceAgent = () => {
                     <button
                       key={index}
                       onClick={() => sendTextMessage(prompt)}
-                      disabled={!isConnected || isProcessing}
+                      disabled={!isConnected}
                       className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 disabled:bg-gray-50 disabled:opacity-50 text-sm rounded-lg transition-colors"
                     >
                       {prompt}
@@ -354,7 +452,7 @@ const UltravoxVoiceAgent = () => {
                 {conversation.length === 0 ? (
                   <div className="text-center text-gray-500 text-sm mt-8">
                     <MessageCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                    <p>Connect and try sending a message.</p>
+                    <p>Connect and start talking to your AI assistant.</p>
                   </div>
                 ) : (
                   conversation.map((message) => (
