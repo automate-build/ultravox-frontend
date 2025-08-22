@@ -39,9 +39,6 @@ const UltravoxVoiceAgent = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          systemPrompt: "You are a helpful AI assistant. Be conversational and helpful. Keep responses concise but friendly.",
-          model: "fixie-ai/ultravox",
-          voice: "Mark",
           medium: {
             webRtc: {}
           }
@@ -74,6 +71,9 @@ const UltravoxVoiceAgent = () => {
 
   const connectToUltravoxCall = async (joinUrl) => {
     try {
+      // Clear previous transcripts
+      processedTranscriptsRef.current.clear();
+      
       // Create and configure Ultravox session
       const session = new UltravoxSession();
       ultravoxSessionRef.current = session;
@@ -119,21 +119,22 @@ const UltravoxVoiceAgent = () => {
       session.addEventListener('transcripts', (event) => {
         console.log('Transcripts updated:', session.transcripts);
         
-        // Process new final transcripts
-        session.transcripts.forEach(transcript => {
-          if (transcript.isFinal) {
-            const transcriptId = `${transcript.speaker}-${transcript.text}-${Date.now()}`;
+        // Process only the most recent final transcript
+        const finalTranscripts = session.transcripts.filter(t => t.isFinal);
+        const lastTranscript = finalTranscripts[finalTranscripts.length - 1];
+        
+        if (lastTranscript) {
+          const transcriptId = `${lastTranscript.speaker}-${lastTranscript.text}`;
+          
+          if (!processedTranscriptsRef.current.has(transcriptId)) {
+            processedTranscriptsRef.current.add(transcriptId);
             
-            if (!processedTranscriptsRef.current.has(transcriptId)) {
-              processedTranscriptsRef.current.add(transcriptId);
-              
-              addMessage(
-                transcript.speaker === 'user' ? 'user' : 'agent',
-                transcript.text
-              );
-            }
+            addMessage(
+              lastTranscript.speaker === 'user' ? 'user' : 'agent',
+              lastTranscript.text
+            );
           }
-        });
+        }
       });
 
       // Handle experimental messages for debugging
@@ -331,7 +332,7 @@ const UltravoxVoiceAgent = () => {
                 <strong>Full Integration Active:</strong> Real-time voice conversation with Ultravox AI.
               </p>
               <p className="text-xs text-emerald-600 mt-2">
-                Local API: /api/create-call
+                Agent ID: b4475bec-5d89-4970-83a2-abe67246ac0b
               </p>
               <p className="text-xs text-emerald-600">
                 SDK: ultravox-client with WebRTC audio
