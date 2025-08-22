@@ -20,11 +20,10 @@ export default async function handler(req, res) {
     }
     
     const callConfig = {
-      agentId: "b4475bec-5d89-4970-83a2-abe67246ac0b",
       medium: req.body.medium || { webRtc: {} }
     }
     
-    const response = await fetch('https://api.ultravox.ai/api/calls', {
+    const response = await fetch(`https://api.ultravox.ai/api/agents/b4475bec-5d89-4970-83a2-abe67246ac0b/calls`, {
       method: 'POST',
       headers: {
         'X-API-Key': apiKey,
