@@ -490,7 +490,7 @@ const UltravoxVoiceAgent = () => {
 
           <div className="space-y-2 mb-6">
   <a
-    href="https://docs.google.com/document/d/your-requirements-doc-id/edit"
+    href="https://docs.google.com/document/d/16AlrYxAEUGMrn--ZaP1wKjKltgHfDKez56VKx7C2cPA/edit?usp=drivesdk"
     target="_blank"
     rel="noopener noreferrer"
     className="block px-4 py-3 bg-gray-50 hover:bg-blue-50 rounded-lg text-sm transition-colors"
@@ -498,7 +498,7 @@ const UltravoxVoiceAgent = () => {
     <span className="text-blue-600 hover:text-blue-800">Project Brief (Project Phoenix).pdf</span>
   </a>
   <a
-    href="https://docs.google.com/spreadsheets/d/your-risks-sheet-id/edit"
+    href="https://docs.google.com/document/d/1KyiPpgBR0bXKZE9or5tBVA2RWDqNAJ0rd-KzRCVXr9A/edit?usp=drivesdk"
     target="_blank"
     rel="noopener noreferrer"
     className="block px-4 py-3 bg-gray-50 hover:bg-blue-50 rounded-lg text-sm transition-colors"
@@ -506,7 +506,7 @@ const UltravoxVoiceAgent = () => {
     <span className="text-blue-600 hover:text-blue-800">Responsible AI & Guardrails Policy.pdf</span>
   </a>
   <a
-    href="https://docs.google.com/document/d/your-architecture-doc-id/edit"
+    href="https://docs.google.com/document/d/16H4Xe7U4EPFM9BRGsgZdR87WlDDEtz483osQSM2BAd4/edit?usp=drivesdk"
     target="_blank"
     rel="noopener noreferrer"
     className="block px-4 py-3 bg-gray-50 hover:bg-blue-50 rounded-lg text-sm transition-colors"
@@ -514,7 +514,7 @@ const UltravoxVoiceAgent = () => {
     <span className="text-blue-600 hover:text-blue-800">Stakeholders Overview.docx</span>
   </a>
     <a
-    href="https://docs.google.com/document/d/your-architecture-doc-id/edit"
+    href="https://docs.google.com/document/d/1s5l8RwgB9oks6_Ar7fG1DRDa3tp_vTKE/edit?usp=drivesdk&ouid=106232809752415426690&rtpof=true&sd=true"
     target="_blank"
     rel="noopener noreferrer"
     className="block px-4 py-3 bg-gray-50 hover:bg-blue-50 rounded-lg text-sm transition-colors"
