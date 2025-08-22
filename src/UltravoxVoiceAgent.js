@@ -22,9 +22,13 @@ const UltravoxVoiceAgent = () => {
   ];
 
   const projectFiles = [
-    "Requirements.md",
-    "Risks-and-Issues.xlsx", 
-    "Architecture.pdf"
+    // "Requirements.md",
+    // "Risks-and-Issues.xlsx", 
+    // "Architecture.pdf"
+    "Project Brief (Project Phoenix).pdf",
+    "Responsible AI & Guardrails Policy.pdf",
+    "Stakeholders Overview.docx", 
+    "Statement of Work (SOW).docx"
   ];
 
   // Connection functions
