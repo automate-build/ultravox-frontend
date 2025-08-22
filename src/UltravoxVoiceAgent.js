@@ -487,17 +487,44 @@ const UltravoxVoiceAgent = () => {
           <div className="col-span-12 lg:col-span-3">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-[600px] flex flex-col">
               <h2 className="text-sm font-medium text-gray-500 mb-4">Project Files (RAG)</h2>
-              
-              <div className="space-y-2 mb-6">
-                {projectFiles.map((file, index) => (
-                  <div
-                    key={index}
-                    className="px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm cursor-pointer transition-colors"
-                  >
-                    {file}
-                  </div>
-                ))}
-              </div>
+
+            // Here 
+          <div className="space-y-2 mb-6">
+  <a
+    href="https://docs.google.com/document/d/your-requirements-doc-id/edit"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="block px-4 py-3 bg-gray-50 hover:bg-blue-50 rounded-lg text-sm transition-colors"
+  >
+    <span className="text-blue-600 hover:text-blue-800">Project Brief (Project Phoenix).pdf</span>
+  </a>
+  <a
+    href="https://docs.google.com/spreadsheets/d/your-risks-sheet-id/edit"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="block px-4 py-3 bg-gray-50 hover:bg-blue-50 rounded-lg text-sm transition-colors"
+  >
+    <span className="text-blue-600 hover:text-blue-800">Responsible AI & Guardrails Policy.pdf</span>
+  </a>
+  <a
+    href="https://docs.google.com/document/d/your-architecture-doc-id/edit"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="block px-4 py-3 bg-gray-50 hover:bg-blue-50 rounded-lg text-sm transition-colors"
+  >
+    <span className="text-blue-600 hover:text-blue-800">Stakeholders Overview.docx</span>
+  </a>
+    <a
+    href="https://docs.google.com/document/d/your-architecture-doc-id/edit"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="block px-4 py-3 bg-gray-50 hover:bg-blue-50 rounded-lg text-sm transition-colors"
+  >
+    <span className="text-blue-600 hover:text-blue-800">Statement of Work (SOW).docx</span>
+  </a>
+</div>
+
+              // Here
               
               <div className="mt-auto pt-4 border-t border-gray-200">
                 <label className="block text-xs text-gray-500 mb-2">Upload Files</label>
