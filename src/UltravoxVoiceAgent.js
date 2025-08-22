@@ -19,7 +19,7 @@ const UltravoxVoiceAgent = () => {
     "Give me a project status update",  
     "Identify key project stakeholders",    
     "Give me a breakdown of current risks",
-    "Create a project issue called {Issue Name}"
+    "Create a project issue called {Issue Name}",
     "Summarise the 'Responsible AI' policy"
   ];
 
