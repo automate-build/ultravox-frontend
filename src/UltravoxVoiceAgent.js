@@ -15,11 +15,12 @@ const UltravoxVoiceAgent = () => {
   const processedTranscriptsRef = useRef(new Set());
 
   const starterPrompts = [
-    "Give me a summary overview of the project brief",
-    "Identify key project stakeholders",
-    "Give me a project status update", 
+    "Summarise the phoenix project brief",
+    "Give me a project status update",  
+    "Identify key project stakeholders",    
     "Give me a breakdown of current risks",
     "Create a project issue called {Issue Name}"
+    "Summarise the 'Responsible AI' policy"
   ];
 
   const projectFiles = [
