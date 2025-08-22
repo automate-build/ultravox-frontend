@@ -488,7 +488,6 @@ const UltravoxVoiceAgent = () => {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-[600px] flex flex-col">
               <h2 className="text-sm font-medium text-gray-500 mb-4">Project Files (RAG)</h2>
 
-            // Here 
           <div className="space-y-2 mb-6">
   <a
     href="https://docs.google.com/document/d/your-requirements-doc-id/edit"
@@ -523,9 +522,7 @@ const UltravoxVoiceAgent = () => {
     <span className="text-blue-600 hover:text-blue-800">Statement of Work (SOW).docx</span>
   </a>
 </div>
-
-              // Here
-              
+             
               <div className="mt-auto pt-4 border-t border-gray-200">
                 <label className="block text-xs text-gray-500 mb-2">Upload Files</label>
                 <input
