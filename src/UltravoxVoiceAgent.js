@@ -31,7 +31,9 @@ const UltravoxVoiceAgent = () => {
       setConnectionStatus('Creating call...');
       
       // Use your deployed Vercel backend (API key is stored in Vercel environment)
-      const callResponse = await fetch('https://ultravox-proxy-86my-aqiov2nke-justin-harcourts-projects.vercel.app/api/create-call', {
+      // const callResponse = await fetch('https://ultravox-proxy-86my-aqiov2nke-justin-harcourts-projects.vercel.app/api/create-call', {
+      const callResponse = await fetch('/api/create-call', {
+
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
