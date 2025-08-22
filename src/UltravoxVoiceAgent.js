@@ -98,7 +98,7 @@ const UltravoxVoiceAgent = () => {
             setIsRecording(false);
             setIsProcessing(false);
             if (!conversation.length) {
-              addMessage('system', 'Connected to Ultravox voice agent. You can now speak or type messages.');
+              addMessage('system', 'Connected to Cassidy (Project Manager Agent). You can now speak or type messages.');
             }
             break;
           case 'listening':
@@ -288,7 +288,7 @@ const UltravoxVoiceAgent = () => {
               <Volume2 className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Ultravox Agent</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Cassidy - Project Manager Agent</h1>
               <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor()}`}>
                 {connectionStatus}
               </span>
@@ -453,7 +453,7 @@ const UltravoxVoiceAgent = () => {
                 {conversation.length === 0 ? (
                   <div className="text-center text-gray-500 text-sm mt-8">
                     <MessageCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                    <p>Connect and start talking to your AI assistant.</p>
+                    <p>Connect and start talking Cassidy.</p>
                   </div>
                 ) : (
                   conversation.map((message) => (
